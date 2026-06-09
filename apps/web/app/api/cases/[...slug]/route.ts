@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { demoProject } from "@bugcourt-ai/shared";
 
 export async function GET(_: Request, { params }: { params: { slug: string[] } }) {
-  const [first, second] = params.slug;
+  const [first] = params.slug;
 
   if (!first) {
     return NextResponse.json({ error: "Invalid case route" }, { status: 400 });

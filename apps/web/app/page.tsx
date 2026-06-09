@@ -1,15 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { demoProject } from "@bugcourt-ai/shared";
 import { CourtCaseCard } from "./components/CourtCaseCard";
 
 export default function HomePage() {
   const [repoUrl, setRepoUrl] = useState("");
   const [analyzed, setAnalyzed] = useState(false);
-  const [project, setProject] = useState(demoProject);
+  const project = demoProject;
 
-  const cases = useMemo(() => (analyzed ? project.cases : []), [analyzed, project]);
+  const cases = analyzed ? project.cases : [];
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-8 text-slate-950">
