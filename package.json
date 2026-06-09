@@ -1,0 +1,15 @@
+{
+  "name": "bugcourt-ai",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm --workspace @bugcourt-ai/web run dev",
+    "build": "npm --workspace @bugcourt-ai/web run build",
+    "typecheck": "npm --workspace @bugcourt-ai/web run typecheck",
+    "lint": "npm --workspace @bugcourt-ai/web run lint"
+  }
+}

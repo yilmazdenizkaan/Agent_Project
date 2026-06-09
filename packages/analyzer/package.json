@@ -1,0 +1,9 @@
+{
+  "name": "@bugcourt-ai/analyzer",
+  "version": "0.1.0",
+  "main": "src/index.ts",
+  "private": true,
+  "dependencies": {
+    "@bugcourt-ai/shared": "0.1.0"
+  }
+}
