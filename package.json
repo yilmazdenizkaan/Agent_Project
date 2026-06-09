@@ -10,6 +10,13 @@
     "dev": "npm --workspace @bugcourt-ai/web run dev",
     "build": "npm --workspace @bugcourt-ai/web run build",
     "typecheck": "npm --workspace @bugcourt-ai/web run typecheck",
-    "lint": "npm --workspace @bugcourt-ai/web run lint"
+    "lint": "npm --workspace @bugcourt-ai/web run lint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^1.0.0",
+    "vitest": "^1.5.4"
   }
 }

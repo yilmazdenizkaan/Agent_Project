@@ -1,7 +1,7 @@
 import { CourtCase, Verdict, StaticFinding } from "@bugcourt-ai/shared";
 
 export function clerkPrompt(finding: StaticFinding) {
-  return `Clerk: Review the finding and present the case with the supporting file, line range, and evidence. Ensure the case is grounded in the visible code evidence only.`;
+  return `Clerk: Review the finding at ${finding.file}:${finding.lineStart}-${finding.lineEnd} and present the case with the supporting file, line range, and evidence. Ensure the case is grounded in the visible code evidence only.`;
 }
 
 export function prosecutorPrompt(courtCase: CourtCase) {
@@ -20,8 +20,27 @@ export function judgePrompt(courtCase: CourtCase) {
   return `Judge: Render a verdict from the available evidence and provide a confidence score between 0 and 1. Verdicts must be one of Guilty, Not Guilty, or Needs More Evidence.`;
 }
 
-export function reporterPrompt(courtCase: CourtCase, verdict: Verdict) {
-  return `Reporter: Summarize the courtroom findings, evidence, and final verdict in a concise report.`;
+export function judgeVerdict(courtCase: CourtCase): Verdict {
+  return {
+    status: courtCase.verdict.status,
+    reasoning: `Based on evidence from ${courtCase.file}:${courtCase.lineStart}-${courtCase.lineEnd}, the case summary supports ${courtCase.verdict.status.toLowerCase()}.`, 
+    confidence: Math.min(1, Math.max(0, courtCase.verdict.confidence))
+  };
+}
+
+export function reporterSummary(courtCase: CourtCase, verdict: Verdict): string {
+  return `# ${courtCase.title}
+
+**Severity:** ${courtCase.severity}
+
+**Verdict:** ${verdict.status}
+
+**Confidence:** ${verdict.confidence}
+
+**Evidence:**
+${courtCase.evidence.map((item) => `- ${item}`).join("\n")}
+
+**Recommended Fix:** ${courtCase.recommendedFix}`;
 }
 
 export const agentRules = [
