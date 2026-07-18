@@ -46,6 +46,8 @@ BugCourt AI is a hackathon MVP that turns code review into an AI-powered courtro
 
 BugCourt AI is moving toward provider-based model and evidence abstractions. Agents depend on injected `ModelProvider` and `EvidenceProvider` interfaces so tests can use deterministic mock providers, while future runtime integrations can support OpenAI-compatible APIs, Groq, Ollama, Gemini, or other providers without hardcoding one model vendor across the codebase.
 
+Model settings now support mock, OpenAI-compatible, Groq-style, Ollama/local, and custom provider configurations. The demo UI can save development settings in browser local storage, and `.env.example` documents server-side defaults without committing real keys.
+
 ## Microsoft IQ Integration
 
 BugCourt AI is designed to integrate with Microsoft IQ / Foundry IQ by grounding reasoning in static findings, code evidence, repository metadata, and indexed project history. The MVP preserves safe, explainable case generation while preparing for intelligence integration.

@@ -4,6 +4,7 @@
   "main": "src/index.ts",
   "private": true,
   "dependencies": {
-    "@bugcourt-ai/shared": "0.1.0"
+    "@bugcourt-ai/shared": "0.1.0",
+    "openai": "^6.48.0"
   }
 }

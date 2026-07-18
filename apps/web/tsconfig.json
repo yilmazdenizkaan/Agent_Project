@@ -28,6 +28,7 @@
     "**/*.ts",
     "**/*.tsx",
     "../../packages/shared/src/**/*",
+    "../../packages/agents/src/**/*",
     ".next/types/**/*.ts"
   ],
   "exclude": [
