@@ -5,10 +5,16 @@ import {
   expertWitnessPrompt,
   judgePrompt,
   judgeVerdict,
+  LocalEvidenceProvider,
+  MockModelProvider,
+  OpenAiCompatibleProvider,
   prosecutorPrompt,
-  reporterSummary
+  reporterSummary,
+  runCourtroomFlow,
+  runExpertWitnessAgent
 } from "./index";
 import type { CourtCase, StaticFinding } from "@bugcourt-ai/shared";
+import type { EvidenceItem } from "./evidence/evidenceProvider";
 
 const finding: StaticFinding = {
   id: "FINDING-001",
@@ -40,6 +46,18 @@ const courtCase: CourtCase = {
     confidence: 0.87
   },
   recommendedFix: "Apply authMiddleware and validate the role from trusted token claims instead of request body."
+};
+
+const evidenceItem: EvidenceItem = {
+  id: "evidence-001",
+  caseId: courtCase.caseId,
+  filePath: "src/routes/admin.ts",
+  lineStart: 42,
+  lineEnd: 61,
+  codeSnippet: "const userRole = request.body.role;",
+  ruleId: "auth-bypass",
+  summary: "The admin route reads role data from the request body.",
+  remediation: "Use trusted token claims for authorization."
 };
 
 describe("agents package", () => {
@@ -92,5 +110,105 @@ describe("agents package", () => {
     expect(markdown).toContain(`**Verdict:** ${verdict.status}`);
     expect(markdown).toContain(`- ${courtCase.evidence[0]}`);
     expect(markdown).toContain(`**Recommended Fix:** ${courtCase.recommendedFix}`);
+  });
+
+  it("MockModelProvider returns deterministic responses", async () => {
+    const provider = new MockModelProvider(["first response", "second response"]);
+
+    await expect(provider.generate({ systemPrompt: "system", userPrompt: "user" })).resolves.toBe("first response");
+    await expect(provider.generate({ systemPrompt: "system", userPrompt: "user" })).resolves.toBe("second response");
+    await expect(provider.generate({ systemPrompt: "system", userPrompt: "user" })).resolves.toBe("Mock model response.");
+  });
+
+  it("OpenAiCompatibleProvider does not require environment variables until generate is called", async () => {
+    const provider = new OpenAiCompatibleProvider({ model: "later-configured-model" });
+
+    await expect(provider.generate({ systemPrompt: "system", userPrompt: "user" })).rejects.toThrow("apiKey");
+  });
+
+  it("LocalEvidenceProvider retrieves evidence by case, file, rule id, and query text", async () => {
+    const provider = new LocalEvidenceProvider([
+      evidenceItem,
+      {
+        ...evidenceItem,
+        id: "evidence-002",
+        caseId: "CASE-OTHER",
+        filePath: "src/routes/other.ts",
+        ruleId: "other-rule"
+      }
+    ]);
+
+    const byCaseAndFile = await provider.retrieve({
+      caseId: courtCase.caseId,
+      query: "request body",
+      filePath: courtCase.file,
+      lineStart: courtCase.lineStart,
+      lineEnd: courtCase.lineEnd
+    });
+    expect(byCaseAndFile).toEqual([evidenceItem]);
+
+    const byRuleId = await provider.retrieve({ query: "auth-bypass" });
+    expect(byRuleId).toEqual([evidenceItem]);
+  });
+
+  it("runExpertWitnessAgent grounds its response in retrieved evidence refs", async () => {
+    const evidenceProvider = new LocalEvidenceProvider([evidenceItem]);
+    const modelProvider = new MockModelProvider("Evidence checked.");
+
+    const output = await runExpertWitnessAgent({ courtCase, finding }, evidenceProvider, modelProvider);
+
+    expect(output.role).toBe("Expert Witness");
+    expect(output.evidenceRefs).toContain("src/routes/admin.ts:42-61");
+    expect(output.message).toContain("src/routes/admin.ts:42-61");
+    expect(output.message).not.toContain("src/unrelated.ts");
+    expect(output.confidence).toBeGreaterThanOrEqual(0);
+    expect(output.confidence).toBeLessThanOrEqual(1);
+  });
+
+  it("runExpertWitnessAgent safely asks for more evidence when none is found", async () => {
+    const evidenceProvider = new LocalEvidenceProvider([]);
+
+    const output = await runExpertWitnessAgent({ courtCase, finding }, evidenceProvider);
+
+    expect(output.role).toBe("Expert Witness");
+    expect(output.message).toContain("Needs More Evidence");
+    expect(output.evidenceRefs).toEqual([]);
+  });
+
+  it("runCourtroomFlow returns the expected deterministic debate result", async () => {
+    const evidenceProvider = new LocalEvidenceProvider([evidenceItem]);
+    const modelProvider = new MockModelProvider([
+      "Clerk opened the case.",
+      "Prosecutor argues from visible evidence.",
+      "Defense asks for surrounding middleware context.",
+      "Expert reviewed retrieved evidence.",
+      "Judge reviewed the arguments."
+    ]);
+
+    const result = await runCourtroomFlow({
+      courtCase,
+      finding,
+      evidenceProvider,
+      modelProvider
+    });
+
+    expect(result.caseId).toBe(courtCase.caseId);
+    expect(result.messages.map((message) => message.role)).toEqual([
+      "Clerk",
+      "Prosecutor",
+      "Defense",
+      "Expert Witness",
+      "Judge",
+      "Reporter"
+    ]);
+    expect(result.verdict?.status).toBe("Guilty");
+    expect(result.verdict?.confidence).toBeGreaterThanOrEqual(0);
+    expect(result.verdict?.confidence).toBeLessThanOrEqual(1);
+    expect(result.messages[3].evidenceRefs).toContain("src/routes/admin.ts:42-61");
+    expect(result.reportMarkdown).toContain(`# ${courtCase.title}`);
+    expect(result.reportMarkdown).toContain(`**Severity:** ${courtCase.severity}`);
+    expect(result.reportMarkdown).toContain(`**Verdict:** ${result.verdict?.status}`);
+    expect(result.reportMarkdown).toContain(`- ${courtCase.evidence[0]}`);
+    expect(result.reportMarkdown).toContain(`**Recommended Fix:** ${courtCase.recommendedFix}`);
   });
 });
