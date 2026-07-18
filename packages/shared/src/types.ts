@@ -1,5 +1,12 @@
 export type Severity = "Low" | "Medium" | "High" | "Critical";
 export type VerdictStatus = "Guilty" | "Not Guilty" | "Needs More Evidence";
+export type AgentRole =
+  | "Clerk"
+  | "Prosecutor"
+  | "Defense"
+  | "Expert Witness"
+  | "Judge"
+  | "Reporter";
 
 export interface StaticFinding {
   id: string;
@@ -11,9 +18,16 @@ export interface StaticFinding {
 }
 
 export interface AgentMessage {
-  agent: "Clerk" | "Prosecutor" | "Defense" | "Expert Witness" | "Judge" | "Reporter";
+  agent: AgentRole;
   message: string;
   timestamp?: string;
+}
+
+export interface AgentOutput {
+  role: AgentRole;
+  message: string;
+  evidenceRefs?: string[];
+  confidence?: number;
 }
 
 export interface Verdict {
@@ -36,6 +50,13 @@ export interface CourtCase {
   expertWitnessArgument: string;
   verdict: Verdict;
   recommendedFix: string;
+}
+
+export interface DebateResult {
+  caseId: string;
+  messages: AgentOutput[];
+  verdict?: Verdict;
+  reportMarkdown?: string;
 }
 
 export interface Project {
