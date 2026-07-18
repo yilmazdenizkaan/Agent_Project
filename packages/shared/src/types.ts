@@ -1,5 +1,6 @@
 export type Severity = "Low" | "Medium" | "High" | "Critical";
 export type VerdictStatus = "Guilty" | "Not Guilty" | "Needs More Evidence";
+export type ModelProviderType = "mock" | "openai" | "groq" | "ollama" | "custom";
 export type AgentRole =
   | "Clerk"
   | "Prosecutor"
@@ -15,6 +16,22 @@ export interface StaticFinding {
   lineEnd: number;
   description: string;
   severity: Severity;
+}
+
+export interface ModelSettings {
+  provider: ModelProviderType;
+  model: string;
+  apiKey?: string;
+  baseUrl?: string;
+  temperature?: number;
+}
+
+export interface SafeModelSettings {
+  provider: ModelProviderType;
+  model: string;
+  baseUrl?: string;
+  temperature?: number;
+  hasApiKey: boolean;
 }
 
 export interface AgentMessage {

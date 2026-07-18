@@ -7,6 +7,7 @@ export * from "./evidence/localEvidenceProvider";
 export * from "./providers/modelProvider";
 export * from "./providers/mockModelProvider";
 export * from "./providers/openAiCompatibleProvider";
+export * from "./providers/modelProviderFactory";
 
 export function clerkPrompt(finding: StaticFinding) {
   return `Clerk: Review the finding at ${finding.file}:${finding.lineStart}-${finding.lineEnd} and present the case with the supporting file, line range, and evidence. Ensure the case is grounded in the visible code evidence only.`;

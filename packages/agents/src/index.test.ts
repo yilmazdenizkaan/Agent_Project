@@ -10,8 +10,10 @@ import {
   OpenAiCompatibleProvider,
   prosecutorPrompt,
   reporterSummary,
+  createModelProvider,
   runCourtroomFlow,
-  runExpertWitnessAgent
+  runExpertWitnessAgent,
+  toSafeModelSettings
 } from "./index";
 import type { CourtCase, StaticFinding } from "@bugcourt-ai/shared";
 import type { EvidenceItem } from "./evidence/evidenceProvider";
@@ -117,13 +119,71 @@ describe("agents package", () => {
 
     await expect(provider.generate({ systemPrompt: "system", userPrompt: "user" })).resolves.toBe("first response");
     await expect(provider.generate({ systemPrompt: "system", userPrompt: "user" })).resolves.toBe("second response");
-    await expect(provider.generate({ systemPrompt: "system", userPrompt: "user" })).resolves.toBe("Mock model response.");
+    await expect(provider.generate({ systemPrompt: "system", userPrompt: "user" })).resolves.toBe("Mock model response grounded in provided input.");
   });
 
   it("OpenAiCompatibleProvider does not require environment variables until generate is called", async () => {
     const provider = new OpenAiCompatibleProvider({ model: "later-configured-model" });
 
     await expect(provider.generate({ systemPrompt: "system", userPrompt: "user" })).rejects.toThrow("apiKey");
+  });
+
+  it("createModelProvider returns MockModelProvider for mock settings", () => {
+    const provider = createModelProvider({
+      provider: "mock",
+      model: "mock-courtroom-model"
+    });
+
+    expect(provider).toBeInstanceOf(MockModelProvider);
+  });
+
+  it("createModelProvider applies Ollama defaults without requiring a real API key", () => {
+    const provider = createModelProvider({
+      provider: "ollama",
+      model: "llama3.1"
+    });
+
+    expect(provider).toBeInstanceOf(OpenAiCompatibleProvider);
+    expect((provider as OpenAiCompatibleProvider).getSafeMetadata()).toEqual({
+      baseUrl: "http://localhost:11434/v1",
+      model: "llama3.1",
+      hasApiKey: true
+    });
+  });
+
+  it("createModelProvider supports custom OpenAI-compatible base URLs", () => {
+    const provider = createModelProvider({
+      provider: "custom",
+      model: "custom-model",
+      baseUrl: "http://localhost:1234/v1",
+      apiKey: "secret-test-key"
+    });
+
+    expect(provider).toBeInstanceOf(OpenAiCompatibleProvider);
+    expect((provider as OpenAiCompatibleProvider).getSafeMetadata()).toEqual({
+      baseUrl: "http://localhost:1234/v1",
+      model: "custom-model",
+      hasApiKey: true
+    });
+  });
+
+  it("toSafeModelSettings never exposes the raw API key", () => {
+    const safeSettings = toSafeModelSettings({
+      provider: "openai",
+      model: "gpt-test",
+      apiKey: "sk-secret-value",
+      baseUrl: "https://api.openai.com/v1",
+      temperature: 0.2
+    });
+
+    expect(safeSettings).toEqual({
+      provider: "openai",
+      model: "gpt-test",
+      baseUrl: "https://api.openai.com/v1",
+      temperature: 0.2,
+      hasApiKey: true
+    });
+    expect(JSON.stringify(safeSettings)).not.toContain("sk-secret-value");
   });
 
   it("LocalEvidenceProvider retrieves evidence by case, file, rule id, and query text", async () => {
